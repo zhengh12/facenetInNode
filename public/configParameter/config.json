@@ -1,0 +1,29 @@
+{
+    "trainParam": {
+        "alpha": 0.2 , 
+        "num_train_samples": 196998, 
+        "num_lfw_valid_samples": 2185,
+        "useTraDataScale": 0.01,
+        "useValDataScale": 0.1,
+        "batch_size": 4,
+        "epochs": 5,
+        "embedding_size": 128
+    },
+
+    "trainData": {
+        "CelebAFolder": "E:/tensorflow/facenet-master/data/img_align_celeba",
+        "lfwFolder": "E:/tensorflow/facenet-master/data/lfw",
+        "identity_annot_filename": "E:/tensorflow/facenet-master/data/identity_CelebA.txt",
+        "lfw_val_triplets": "../lfwValidationData/lfw_val_triplets.json",
+        "excludeFileName": "E:/tensorflow/facenet-master/data/exclude.txt"
+    },
+
+    "modelPath": {
+        "pModelPath": "./public/model/Pnet/model.json",
+        "rModelPath": "./public/model/Rnet/model.json",
+        "oModelPath": "./public/model/Onet/model.json",
+        "facenetModel": "./public/model/Facenet1/model.json",
+        "pretrainedFacenetModel": "E:/tensorflow/facenet-master/models/trainedFacenet/model.json"
+    }
+
+}

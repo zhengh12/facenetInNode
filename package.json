@@ -1,0 +1,33 @@
+{
+  "name": "tfjsnode",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^1.3.2",
+    "@tensorflow/tfjs-node": "^1.3.2",
+    "@tensorflow/tfjs-node-gpu": "^1.5.1",
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "density-clustering": "^1.3.0",
+    "express": "~4.16.1",
+    "gm": "^1.23.1",
+    "http-errors": "~1.6.3",
+    "image-augment": "^1.1.1",
+    "imagemagick": "^0.1.3",
+    "images": "^3.0.2",
+    "jade": "~1.11.0",
+    "ml-dataset-iris": "^1.1.1",
+    "ml-hclust": "^3.0.0",
+    "ml-kmeans": "^5.0.0",
+    "ml-matrix": "^6.4.1",
+    "ml-random-forest": "^2.0.1",
+    "morgan": "~1.9.1",
+    "pngjs": "^3.4.0",
+    "snap-to-grid-clustering": "^1.0.6"
+  }
+}
