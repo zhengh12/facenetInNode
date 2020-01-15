@@ -1,2 +1,2 @@
 # facenetInNode
-the most code in ./public/javascripts
+Most of code in ./public/javascripts
