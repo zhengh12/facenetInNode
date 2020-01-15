@@ -1,2 +1,2 @@
 # facenetInNode
-# 大部分代码在 ./public/javascripts里
+the most code in ./public/javascripts
