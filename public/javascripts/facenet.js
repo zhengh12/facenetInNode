@@ -2,10 +2,11 @@ const tf = require("@tensorflow/tfjs-node");
 const fs = require("fs");
 const images = require("images");
 const detectFace = require("./detectFace")
+const alignFace = require("./alignFace")
 
 // "./public/images/test/微信图片2.jpg"
-const image1Path = "E:/tensorflow/Keras_TP-GAN-master/images/x1.png"
-const image2Path = "E:/tensorflow/Keras_TP-GAN-master/images/y1.png"
+const image1Path = "./public/images/RandomForestTrainData/TaylorSwift/TaylorSwift0003.jpg"
+const image2Path = "./public/images/tywai.jpeg"
 const modelPath = "./public/model/Facenet1/model.json"
 
 //导入facenet网络模型
@@ -78,7 +79,6 @@ async function loadFacenetModel(modelPath){
     tf.serialization.registerClass(Lambda1);
 
     const model = await tf.loadLayersModel('file://'+modelPath);
-    model.summary()
     return model
 }
 
@@ -105,48 +105,49 @@ async function EigenfaceVector(modelPath, image1Path, image2Path, Pnet, Rnet, On
     console.log('rectanglesout:',rectangles)
     console.log('rectangles1out:',rectangles1)
 
-    //根据mtcnn人脸检测到的矩形从原始图像中截取人脸数据，若多人脸也只取第一个矩形也就是最像人脸的区域
-    imgTensor = imgTensor.arraySync()
-    let imgTensorFace = []
-    imgTensor.map((val,index)=>{
-        if(index>rectangles[0][1]&&index<=rectangles[0][3]){
-            imgTensorFace.push(val.slice(rectangles[0][0],rectangles[0][2]))
-        }
-    })
-    // imgTensorFace = imgTensorFace.map(val=>{
-    //     return val.map(val=>{
-    //         let array = val.map(val=>{
-    //             return val
-    //         })
-    //         array.splice(2,1,...array.splice(0, 1 , array[2]));
-    //         return array
-    //     })
+    // //根据mtcnn人脸检测到的矩形从原始图像中截取人脸数据，若多人脸也只取第一个矩形也就是最像人脸的区域
+    // imgTensor = imgTensor.arraySync()
+    // let imgTensorFace = []
+    // imgTensor.map((val,index)=>{
+    //     if(index>rectangles[0][1]&&index<=rectangles[0][3]){
+    //         imgTensorFace.push(val.slice(rectangles[0][0],rectangles[0][2]))
+    //     }
     // })
+    // // imgTensorFace = imgTensorFace.map(val=>{
+    // //     return val.map(val=>{
+    // //         let array = val.map(val=>{
+    // //             return val
+    // //         })
+    // //         array.splice(2,1,...array.splice(0, 1 , array[2]));
+    // //         return array
+    // //     })
+    // // })
 
-    imgTensor1 = imgTensor1.arraySync()
-    let imgTensor1Face = []
-    imgTensor1.map((val,index)=>{
-        if(index>rectangles1[0][1]&&index<=rectangles1[0][3]){
-            imgTensor1Face.push(val.slice(rectangles1[0][0],rectangles1[0][2]))
-        }
-    })
-    // imgTensor1Face = imgTensor1Face.map(val=>{
-    //     return val.map(val=>{
-    //         let array = val.map(val=>{
-    //             return val
-    //         })
-    //         array.splice(2,1,...array.splice(0, 1 , array[2]));
-    //         return array
-    //     })
+    // imgTensor1 = imgTensor1.arraySync()
+    // let imgTensor1Face = []
+    // imgTensor1.map((val,index)=>{
+    //     if(index>rectangles1[0][1]&&index<=rectangles1[0][3]){
+    //         imgTensor1Face.push(val.slice(rectangles1[0][0],rectangles1[0][2]))
+    //     }
     // })
+    // // imgTensor1Face = imgTensor1Face.map(val=>{
+    // //     return val.map(val=>{
+    // //         let array = val.map(val=>{
+    // //             return val
+    // //         })
+    // //         array.splice(2,1,...array.splice(0, 1 , array[2]));
+    // //         return array
+    // //     })
+    // // })
 
-    //将获取到的人脸数据转化成与网络inputShape一样shape的数据
-    imgTensorFace = tf.image.resizeNearestNeighbor(tf.tensor(imgTensorFace,[rectangles[0][3]-rectangles[0][1],rectangles[0][2]-rectangles[0][0],3]),[160,160])
+    //使用矩阵仿射方法进行人脸对齐
+    let imgTensorFace = await alignFace.affineImage(imgTensor, rectangles)
+    let imgTensor1Face = await alignFace.affineImage(imgTensor1, rectangles1)
+
     //将输入标准化使其符合标准正态分布
     imgTensorFace = prewhiten(imgTensorFace)
     let input = imgTensorFace.reshape([1,160,160,3])
 
-    imgTensor1Face = tf.image.resizeNearestNeighbor(tf.tensor(imgTensor1Face,[rectangles1[0][3]-rectangles1[0][1],rectangles1[0][2]-rectangles1[0][0],3]),[160,160])
     //将输入标准化使其符合标准正态分布
     imgTensor1Face = prewhiten(imgTensor1Face)
     let input1 = imgTensor1Face.reshape([1,160,160,3])
@@ -222,15 +223,38 @@ function faceVector(model, imagePath, Pnet, Rnet, Onet){
     return out
 }
 
+async function faceAlignVector(model, imagePath, Pnet, Rnet, Onet){
+    let img = fs.readFileSync(imagePath)
+    let imgTensor = tf.node.decodeImage(img)
+    let threshold = [0.6,0.6,0.7]
+    let rectangles = detectFace.detectFace(imgTensor, threshold, Pnet, Rnet, Onet)
+    let imgTensorFace = await alignFace.affineImage(imgTensor, rectangles)
+    imgTensorFace = tf.image.resizeBilinear(imgTensorFace, [160,160])
+    imgTensorFace = prewhiten(imgTensorFace)
+    let input = imgTensorFace.reshape([1,160,160,3])
+    let out = model.predict(input)
+    out = l2_normalize(out)
+    // out.print()
+    return out
+}
+
 async function test(){
     const pModelPath = './public/model/Pnet/model.json'
     const rModelPath = './public/model/Rnet/model.json'
     const oModelPath = './public/model/Onet/model.json'
     const mtcnnModel = await detectFace.loadModel(pModelPath, rModelPath, oModelPath)
-    let Vector = faceVector(modelPath,image1Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
-    console.log(Vector)
+    const model = await loadFacenetModel(modelPath)
+    let vector1 = await faceVector(model, image1Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    let vector2 = await faceVector(model, image2Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    let dist1 = tf.sqrt(tf.sum(tf.squaredDifference(vector1,vector2)))
+    dist1.print()
+    let AlignedVector1 = await faceAlignVector(model, image1Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    let AlignedVector2 = await faceAlignVector(model, image2Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    let dist2 = tf.sqrt(tf.sum(tf.squaredDifference(AlignedVector1,AlignedVector2)))
+    dist2.print()
+    
 }
-//test()
+test()
 
 exports.faceVector = faceVector
 exports.loadFacenetModel = loadFacenetModel

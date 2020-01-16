@@ -24,6 +24,7 @@ const face_landmarks = [[70, 111],
 
 
 function getAffineFactor(points1, points2){
+    console.log("p1:", points1, points2)
     let mean1 = [...''.padEnd(2)].map((val,index) => {
         return points1.reduce((a, b)=>{
             return a + b[index]
@@ -107,7 +108,6 @@ function getAffineFactor(points1, points2){
 
 const tensorToFile = function (filename, images) {
 	return new Promise((resolve, reject) => {
-        console.log(images)
 		const png = new PNG({
 			width: images.shape[2],
 			height: images.shape[1]
@@ -121,41 +121,19 @@ const tensorToFile = function (filename, images) {
 	});
 };
 
-[angle, scale, distance] = getAffineFactor(face_landmarks1, coord5point1)
-console.log("angle: ", angle, "scale: ", scale, "distance: ", distance)
+// [angle, scale, distance] = getAffineFactor(face_landmarks1, coord5point1)
+// console.log("angle: ", angle, "scale: ", scale, "distance: ", distance)
 
-const rectangles = [ [ 136,
-    45,
-    216,
-    144,
-    0.9999394416809082,
-    155.55689921975136,
-    92.84333002567291,
-    188.33148896694183,
-    80.45566946268082,
-    177.59074652194977,
-    105.10871922969818,
-    167.44625580310822,
-    124.28433859348297,
-    200.31223320960999,
-    112.18662071228027 ] ]
-
-async function affineImage(){
-    // const centerx = (rectangles[0][2] - rectangles[0][0]) / 2 + rectangles[0][0]
-    // const centery = (rectangles[0][3] - rectangles[0][1]) / 2 + rectangles[0][1]
-    // const squareLenght = Math.sqrt(Math.pow((rectangles[0][2] - rectangles[0][0]),2) + Math.pow((rectangles[0][3] - rectangles[0][1]),2))
-    // console.log(centerx, centery, squareLenght)
-    // const leftTop = [centerx - squareLenght, ]
-    const basicAugmentation = ia.sequential([
-        // ia.affine({scale: [1, 1],
-        // 	translatePercent: [0, 0],
-        // 	rotate: 0,
-        // 	shear: 0,}, false, [0, 0, 0], "constant"),
-        ia.affine({translatePercent: [0,0],rotate: 0, scale:1}),
-        ia.blur(1)
-    ]);
-    let img = fs.readFileSync('./public/images/wai.png')
-    let images = tf.node.decodeImage(img)
+async function affineImage(images, rectangles){
+    let rectangle = rectangles[0]
+    const centerx = (rectangle[2] - rectangle[0]) / 2 + rectangle[0]
+    const centery = (rectangle[3] - rectangle[1]) / 2 + rectangle[1]
+    const squareLenght = Math.sqrt(Math.pow((rectangle[2] - rectangle[0]),2) + Math.pow((rectangle[3] - rectangle[1]),2))
+    const leftTop = [centerx - squareLenght / 2, centery - squareLenght / 2]
+    console.log(centerx, centery, squareLenght, leftTop)
+    tf.util.assert(leftTop[0]<0 || leftTop[1]<0 || leftTop[1] + squareLenght > images.shape[0] || leftTop[0] + squareLenght > images.shape[1], 'Face is too close to the edge of the picture')
+    // let img = fs.readFileSync('./public/images/wai.png')
+    // let images = tf.node.decodeImage(img)
     let sub = []
     for(let j=0; j<images.shape[1]; j++){
         sub.push([225])  
@@ -166,18 +144,44 @@ async function affineImage(){
     }
     aImageArr = tf.tensor(aImageArr,[images.shape[0], images.shape[1], 1],"int32")
     images = tf.concat([images, aImageArr], 2)
-    images = images.slice([rectangles[0][0],rectangles[0][1]], [rectangles[0][2] - rectangles[0][0], rectangles[0][3] - rectangles[0][1]])
-    console.log(images)
-    let squareLenght = Math.max((rectangles[0][2] - rectangles[0][0]), (rectangles[0][3] - rectangles[0][1]))
-    images = tf.image.resizeNearestNeighbor(images, [squareLenght, squareLenght])
-    console.log(images)
+
+    // images = images.slice([rectangles[0][1],rectangles[0][0]], [rectangles[0][3] - rectangles[0][1], rectangles[0][2] - rectangles[0][0]])
+    // console.log(images)
+    // let squareLenght = Math.max((rectangles[0][2] - rectangles[0][0]), (rectangles[0][3] - rectangles[0][1]))
+    // images = tf.image.resizeNearestNeighbor(images, [squareLenght, squareLenght])
+    // console.log(images)
+
+    //000275.jpg眼镜
+
+    images = images.slice([leftTop[1], leftTop[0]], [squareLenght, squareLenght])
     images = images.as4D(1, images.shape[0], images.shape[1], 4)
-    images.print()
+    // images.print()
+    //默认将鼻子当做预设人脸的中心点
+    let eyeFactorx = 0.5 //预设的眼睛位置，眼睛到鼻子与眼睛到人脸矩形边界距离的x轴比值,可自定义。
+    let eyeFactory = 0.5 //预设的眼睛位置，眼睛到鼻子与眼睛到人脸矩形边界距离的y轴比值,可自定义。
+    let mouFactorx = 0.5 //预设的嘴巴位置，嘴巴端点到鼻子与嘴巴端点到人脸矩形边界距离的x轴比值,可自定义。
+    let mouFactory = 0.5 //预设的嘴巴位置，嘴巴端点到鼻子与嘴巴端点到人脸矩形边界距离的y轴比值,可自定义。
+    let offsetEyeX = (centerx - rectangle[0]) * eyeFactorx
+    let offsetEyeY = (centery - rectangle[1]) * eyeFactory
+    let offsetMouX = (centerx - rectangle[0]) * mouFactorx
+    let offsetMouY = (centery - rectangle[1]) * mouFactory;
+    [angle, scale, distance] = getAffineFactor(
+        [[rectangle[5], rectangle[6]],[rectangle[7], rectangle[8]],[rectangle[9], rectangle[10]],[rectangle[11], rectangle[12]],[rectangle[13], rectangle[14]]],
+        [[centerx-offsetEyeX, centery-offsetEyeY],[centerx+offsetEyeX, centery-offsetEyeY],[centerx, centery],[centerx-offsetMouX, centery+offsetMouY],[centerx+offsetMouX, centery+offsetMouY]])
+    console.log("angle: ", angle, "scale: ", scale, "distance: ", distance)
+    const basicAugmentation = ia.sequential([
+        ia.affine({translatePercent: [0,0],rotate: -angle, scale:1}),
+        ia.blur(1)
+    ]);
     affineImages = await basicAugmentation.read({images:images})
     affineImages = affineImages.images
-    console.log("lala:", affineImages)
-    affineImages.print()
-    await tensorToFile('./public/images/zheng.png', affineImages)
+    console.log(affineImages)
+    console.log(rectangle[1]-leftTop[1], rectangle[0]-leftTop[0], rectangle[3] - rectangle[1], rectangle[2] - rectangle[0])
+    affineImages = affineImages.slice([0, rectangle[1]-leftTop[1], rectangle[0]-leftTop[0]],[1, rectangle[3] - rectangle[1], rectangle[2] - rectangle[0]])
+    await tensorToFile('./public/images/zheng1.png', affineImages)
+    let [t1, t2] = tf.split(affineImages, [3,1], 3)
+    t1 = t1.reshape([t1.shape[1], t1.shape[2], 3])
+    return t1
 }
-affineImage()
-
+// affineImage()
+exports.affineImage = affineImage
