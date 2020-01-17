@@ -3,11 +3,9 @@ const fs = require("fs");
 const images = require("images");
 const detectFace = require("./detectFace")
 const alignFace = require("./alignFace")
-
-// "./public/images/test/微信图片2.jpg"
-const image1Path = "./public/images/RandomForestTrainData/TaylorSwift/TaylorSwift0003.jpg"
+const config = require("../configParameter/config.json") //导入配置参数文件
+const image1Path = "./public/images/RandomForestTrainData/TaylorSwift/TaylorSwift0003.jpeg"
 const image2Path = "./public/images/tywai.jpeg"
-const modelPath = "./public/model/Facenet1/model.json"
 
 //导入facenet网络模型
 async function loadFacenetModel(modelPath){
@@ -82,13 +80,16 @@ async function loadFacenetModel(modelPath){
     return model
 }
 
-//通过facenet网络获得两个输入图像的特征脸向量。
+//比对两个输入图像的人脸距离。
 //input parameters: 
-//  modelPath 网络拓扑结构json文件地址
-//  image1Path 图像1的文件地址
-//  image2Path 图像2的文件地址
+//  String modelPath 网络拓扑结构json文件地址
+//  String image1Path 图像1的文件地址
+//  String image2Path 图像2的文件地址
+//  tf.LayersModel Pnet mtcnn快速扫描人脸区域的Pnet
+//  tf.LayersModel Rnet mtcnn精确判断人脸区域的Rnet
+//  tf.LayersModel Pnet mtcnn定位人脸地标位置的Onet
 //output:
-//  一个长度为2的张量数组
+//  tf.Tensor dis 一个长度为1的张量
 async function EigenfaceVector(modelPath, image1Path, image2Path, Pnet, Rnet, Onet){
     
     //导入模型和图像数据
@@ -105,41 +106,7 @@ async function EigenfaceVector(modelPath, image1Path, image2Path, Pnet, Rnet, On
     console.log('rectanglesout:',rectangles)
     console.log('rectangles1out:',rectangles1)
 
-    // //根据mtcnn人脸检测到的矩形从原始图像中截取人脸数据，若多人脸也只取第一个矩形也就是最像人脸的区域
-    // imgTensor = imgTensor.arraySync()
-    // let imgTensorFace = []
-    // imgTensor.map((val,index)=>{
-    //     if(index>rectangles[0][1]&&index<=rectangles[0][3]){
-    //         imgTensorFace.push(val.slice(rectangles[0][0],rectangles[0][2]))
-    //     }
-    // })
-    // // imgTensorFace = imgTensorFace.map(val=>{
-    // //     return val.map(val=>{
-    // //         let array = val.map(val=>{
-    // //             return val
-    // //         })
-    // //         array.splice(2,1,...array.splice(0, 1 , array[2]));
-    // //         return array
-    // //     })
-    // // })
-
-    // imgTensor1 = imgTensor1.arraySync()
-    // let imgTensor1Face = []
-    // imgTensor1.map((val,index)=>{
-    //     if(index>rectangles1[0][1]&&index<=rectangles1[0][3]){
-    //         imgTensor1Face.push(val.slice(rectangles1[0][0],rectangles1[0][2]))
-    //     }
-    // })
-    // // imgTensor1Face = imgTensor1Face.map(val=>{
-    // //     return val.map(val=>{
-    // //         let array = val.map(val=>{
-    // //             return val
-    // //         })
-    // //         array.splice(2,1,...array.splice(0, 1 , array[2]));
-    // //         return array
-    // //     })
-    // // })
-
+    //根据mtcnn人脸检测到的矩形从原始图像中截取人脸数据，若多人脸也只取第一个矩形也就是最像人脸的区域
     //使用矩阵仿射方法进行人脸对齐
     let imgTensorFace = await alignFace.affineImage(imgTensor, rectangles)
     let imgTensor1Face = await alignFace.affineImage(imgTensor1, rectangles1)
@@ -164,7 +131,6 @@ async function EigenfaceVector(modelPath, image1Path, image2Path, Pnet, Rnet, On
     //计算欧式距离并输出
     let dist = tf.sqrt(tf.sum(tf.squaredDifference(out,out1)))
     dist.print()
-    return [out,out1]
 }
 
 //该函数将数据l2正则化,可使用tf.regularizers.l2
@@ -201,12 +167,19 @@ function prewhiten(x) {
     return y
 }
 
-//转化单张图片的函数
+//获得单张输入图像的特征脸向量。
+//input parameters: 
+//  String modelPath 网络拓扑结构json文件地址
+//  String imagePath 图片的所在路径
+//  tf.LayersModel Pnet mtcnn快速扫描人脸区域的Pnet
+//  tf.LayersModel Rnet mtcnn精确判断人脸区域的Rnet
+//  tf.LayersModel Pnet mtcnn定位人脸地标位置的Onet
+//output:
+//  tf.Tensor out 一个长度为128的张量
 function faceVector(model, imagePath, Pnet, Rnet, Onet){
     let img = fs.readFileSync(imagePath)
     let imgTensor = tf.node.decodeImage(img)
-    let threshold = [0.6,0.6,0.7]
-    let rectangles = detectFace.detectFace(imgTensor, threshold, Pnet, Rnet, Onet)
+    let rectangles = detectFace.detectFace(imgTensor, config.mtcnnParam.threshold, Pnet, Rnet, Onet)
     imgTensor = imgTensor.arraySync()
     let imgTensorFace = []
     imgTensor.map((val,index)=>{
@@ -214,49 +187,71 @@ function faceVector(model, imagePath, Pnet, Rnet, Onet){
             imgTensorFace.push(val.slice(rectangles[0][0],rectangles[0][2]))
         }
     })
-    imgTensorFace = tf.image.resizeBilinear(tf.tensor(imgTensorFace,[rectangles[0][3]-rectangles[0][1],rectangles[0][2]-rectangles[0][0],3]),[160,160])
+    imgTensorFace = tf.image.resizeBilinear(tf.tensor(imgTensorFace,[rectangles[0][3]-rectangles[0][1],rectangles[0][2]-rectangles[0][0],3]),[config.facenetParam.inputImageSize,config.facenetParam.inputImageSize])
     imgTensorFace = prewhiten(imgTensorFace)
-    let input = imgTensorFace.reshape([1,160,160,3])
+    let input = imgTensorFace.reshape([1, config.facenetParam.inputImageSize, config.facenetParam.inputImageSize, 3])
     let out = model.predict(input)
     out = l2_normalize(out)
     // out.print()
     return out
 }
 
+//加上人脸仿射获得单张输入图像的特征脸向量。
+//input parameters: 
+//  String modelPath 网络拓扑结构json文件地址
+//  String imagePath 图片的所在路径
+//  tf.LayersModel Pnet mtcnn快速扫描人脸区域的Pnet
+//  tf.LayersModel Rnet mtcnn精确判断人脸区域的Rnet
+//  tf.LayersModel Pnet mtcnn定位人脸地标位置的Onet
+//output:
+//  tf.Tensor out 一个长度为128的张量
 async function faceAlignVector(model, imagePath, Pnet, Rnet, Onet){
     let img = fs.readFileSync(imagePath)
     let imgTensor = tf.node.decodeImage(img)
-    let threshold = [0.6,0.6,0.7]
-    let rectangles = detectFace.detectFace(imgTensor, threshold, Pnet, Rnet, Onet)
+    let rectangles = detectFace.detectFace(imgTensor, config.mtcnnParam.threshold, Pnet, Rnet, Onet)
     let imgTensorFace = await alignFace.affineImage(imgTensor, rectangles)
-    imgTensorFace = tf.image.resizeBilinear(imgTensorFace, [160,160])
-    imgTensorFace = prewhiten(imgTensorFace)
-    let input = imgTensorFace.reshape([1,160,160,3])
-    let out = model.predict(input)
-    out = l2_normalize(out)
-    // out.print()
-    return out
+    if(imgTensorFace !== "error"){
+        imgTensorFace = tf.image.resizeBilinear(imgTensorFace, [config.facenetParam.inputImageSize,config.facenetParam.inputImageSize])
+        imgTensorFace = prewhiten(imgTensorFace)
+        let input = imgTensorFace.reshape([1, config.facenetParam.inputImageSize, config.facenetParam.inputImageSize, 3])
+        let out = model.predict(input)
+        out = l2_normalize(out)
+        // out.print()
+        return out
+    }else{
+        console.log("放弃使用人脸对齐函数！")
+        imgTensorFace = tf.slice(imgTensor, [rectangles[0][1], rectangles[0][0]], [rectangles[0][3]-rectangles[0][1], rectangles[0][2]-rectangles[0][0]])
+        imgTensorFace = tf.image.resizeBilinear(imgTensorFace,[config.facenetParam.inputImageSize,config.facenetParam.inputImageSize])
+        imgTensorFace = prewhiten(imgTensorFace)
+        let input = imgTensorFace.reshape([1, config.facenetParam.inputImageSize, config.facenetParam.inputImageSize, 3])
+        let out = model.predict(input)
+        out = l2_normalize(out)
+        // out.print()
+        return out
+    }
 }
 
+//测试两张人脸图片之间的欧式距离
 async function test(){
-    const pModelPath = './public/model/Pnet/model.json'
-    const rModelPath = './public/model/Rnet/model.json'
-    const oModelPath = './public/model/Onet/model.json'
-    const mtcnnModel = await detectFace.loadModel(pModelPath, rModelPath, oModelPath)
-    const model = await loadFacenetModel(modelPath)
-    let vector1 = await faceVector(model, image1Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
-    let vector2 = await faceVector(model, image2Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    const [Pnet, Rnet, Onet] = await detectFace.loadModel(config.modelPath.pModelPath, config.modelPath.rModelPath, config.modelPath.oModelPath)
+    const model = await loadFacenetModel(config.modelPath.facenetModel)
+    // console.time('run 1 time')
+    let vector1 = await faceVector(model, image1Path, Pnet, Rnet, Onet)
+    let vector2 = await faceVector(model, image2Path, Pnet, Rnet, Onet)
     let dist1 = tf.sqrt(tf.sum(tf.squaredDifference(vector1,vector2)))
     dist1.print()
-    let AlignedVector1 = await faceAlignVector(model, image1Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
-    let AlignedVector2 = await faceAlignVector(model, image2Path, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
+    // console.timeEnd('run 1 time')
+    // console.time('run 2 time')
+    let AlignedVector1 = await faceAlignVector(model, image1Path, Pnet, Rnet, Onet)
+    let AlignedVector2 = await faceAlignVector(model, image2Path, Pnet, Rnet, Onet)
     let dist2 = tf.sqrt(tf.sum(tf.squaredDifference(AlignedVector1,AlignedVector2)))
     dist2.print()
-    
+    // console.timeEnd('run 2 time')
 }
-test()
+// test()
 
 exports.faceVector = faceVector
+exports.faceAlignVector = faceAlignVector
 exports.loadFacenetModel = loadFacenetModel
 exports.prewhiten = prewhiten
 exports.l2_normalize = l2_normalize

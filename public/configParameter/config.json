@@ -23,7 +23,25 @@
         "rModelPath": "./public/model/Rnet/model.json",
         "oModelPath": "./public/model/Onet/model.json",
         "facenetModel": "./public/model/Facenet1/model.json",
-        "pretrainedFacenetModel": "E:/tensorflow/facenet-master/models/trainedFacenet/model.json"
+        "pretrainedFacenetModel": "./public/model/PreTrainFacenet/model.json"
+    },
+
+    "mtcnnParam":{
+        "threshold": [0.6,0.6,0.7],
+        "imagePyramidFactor": 0.816,
+        "imagePyramidMin": 12
+    },
+
+    "facenetParam":{
+        "inputImageSize": 160
+    },
+
+    "faceAlignParam":{
+        "eyeFactorx": 0.5,
+        "eyeFactory": 0.5,
+        "mouFactorx": 0.5,
+        "mouFactory": 0.5,
+        "smallestAngle": 5
     }
 
 }

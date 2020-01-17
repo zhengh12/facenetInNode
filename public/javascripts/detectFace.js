@@ -1,9 +1,13 @@
 const tf = require("@tensorflow/tfjs-node");
 const toolMatrix = require("./toolMatrix")
-const images = require("images");
-const fs = require("fs");
-const ia = require('image-augment')(tf);
 
+//根据模型路径加载mtcnn的三个网络模型
+//input parameters: 
+//  String pModelPath mtcnnPnet的json文件路径
+//  String rModelPath mtcnnRnet的json文件路径
+//  String oModelPath mtcnnOnet的json文件路径
+//output:
+//  tf.LayersModel Array[3] [Pnet, Rnet, Onet] mtcnn的Pnet，Rnet，Onet网络模型
 async function loadModel(pModelPath, rModelPath, oModelPath){
     const Pnet = await tf.loadLayersModel('file://'+pModelPath);
     const Rnet = await tf.loadLayersModel('file://'+rModelPath);
@@ -11,6 +15,16 @@ async function loadModel(pModelPath, rModelPath, oModelPath){
     return [Pnet, Rnet, Onet]
 }
 
+//利用mtcnn进行人脸检测
+//该函数及其工具toolMatrix仅利用少数tfjs的api编写,所以速度还可以改善
+//input parameters: 
+//  tf.Tensor imgarrs 原图像的数据以张量形式表示
+//  Array[3] threshold 人脸检测过程中用到的参数
+//  tf.LayersModel Pnet mtcnn快速扫描人脸区域的Pnet
+//  tf.LayersModel Rnet mtcnn精确判断人脸区域的Rnet
+//  tf.LayersModel Pnet mtcnn定位人脸地标位置的Onet
+//output:
+//  Number array[n][15] rectangles 得到零到多个包含矩形框左上右下两点x1, y1, x2, y2并人脸置信得分和人脸五个地标点位置的人脸区域数据数组
 function detectFace(imgarrs, threshold, Pnet, Rnet, Onet){
     // console.time('run 12net1 time')
     let caffe_img = tf.div(imgarrs.sub(tf.scalar(127.5)), tf.scalar(127.5))

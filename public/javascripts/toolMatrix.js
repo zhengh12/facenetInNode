@@ -1,4 +1,11 @@
+const config = require("../configParameter/config.json")
 
+//根据输入图像的宽高生成图像金字塔比例数组
+//input parameters: 
+//  Number h 原图像的高
+//  Number w 原图像的宽
+//output:
+//  Number array[n] scales 表示缩放比例的数组
 function calculateScales(h, w){
     let pr_scale = 1.0
     if (Math.min(w,h)>500){
@@ -13,10 +20,10 @@ function calculateScales(h, w){
     }
     //multi-scale
     let scales = []
-    let factor = 0.816 //表示缩小后面积是原面积的2/3，factor=根号2/3，值约接近1则人脸检测准度越高，但同样时间花费也高
+    let factor = config.mtcnnParam.imagePyramidFactor //表示缩小后面积是原面积的2/3，factor=根号2/3，值约接近1则人脸检测准度越高，但同样时间花费也高
     let factor_count = 0
     let minl = Math.min(h,w)
-    while (minl >= 12){
+    while (minl >= config.mtcnnParam.imagePyramidMin){ //表示图像金字塔最小的像素大小
         scales.push(pr_scale*Math.pow(factor, factor_count))
         minl *= factor
         factor_count += 1
@@ -24,156 +31,14 @@ function calculateScales(h, w){
     return scales
 }
 
-function detect_face_12net(cls_prob,roi,out_side,scale,width,height,threshold){
-    let in_side = 2*out_side+11
-    let stride = 0
-    if(out_side != 1){
-        stride = (in_side-12)/(out_side-1)
-    }
-    //(x,y) = np.where(cls_prob>=threshold)
-    //////////////////////////////
-    let x = []
-    let y = []
-    cls_prob.map((val,index0)=>{
-        return val.map((val,index1)=>{
-            if(val>=threshold){
-                x.push(index0)
-                y.push(index1)
-            }
-        }) 
-    })
 
-    let boundingbox = [x,y]
-    boundingbox = Array(boundingbox[0].length).fill(null).map((val,index1) => {
-        return Array(boundingbox.length).fill(null).map((val,index2)=>{
-            return boundingbox[index2][index1]
-        })
-    })
-    // boundingbox = np.array([x,y]).T
-    // bb1 = np.fix((stride * (boundingbox) + 0 ) * scale)
-    let bb1 = boundingbox.map(val=>{
-        return val.map(val=>{
-            return Math.floor((val * stride + 0) * scale/1.0)
-        })
-    })
-    // bb2 = np.fix((stride * (boundingbox) + 11) * scale)
-    let bb2 = boundingbox.map(val=>{
-        return val.map(val=>{
-            return Math.floor((val * stride + 11) * scale/1.0)
-        })
-    })
-    //console.log(bb2,bb2.length)
-    // boundingbox = np.concatenate((bb1,bb2),axis = 1)
-    let arr1 = []
-    bb1.map((val,index0)=>{
-        let arr2 = []
-        val.map((val,index1)=>{
-            arr2.splice(index1,0,val) //保证是以x1,y1,x2,y2顺序
-            arr2.push(bb2[index0][index1])
-        })
-        arr1.push(arr2)
-    })
-    boundingbox = arr1
-    //console.log(boundingbox,boundingbox.length)
-    // dx1 = roi[0][x,y]
-    let dx1 = x.map((val,index)=>{
-        return roi[0][val][y[index]]
-    })
-    //console.log("cls_prob",cls_prob)
-    //console.log(x,y)
-    //console.log(dx1,dx1.length)
-    // dx2 = roi[1][x,y]
-    let dx2 = x.map((val,index)=>{
-        return roi[1][val][y[index]]
-    })
-    // dx3 = roi[2][x,y]
-    let dx3 = x.map((val,index)=>{
-        return roi[2][val][y[index]]
-    })
-    // dx4 = roi[3][x,y]
-    let dx4 = x.map((val,index)=>{
-        return roi[3][val][y[index]]
-    })
-    // score = np.array([cls_prob[x,y]]).T
-    let score = x.map((val,index)=>{
-        return [cls_prob[val][y[index]]]
-    })
-    //console.log(score)
-    // offset = np.array([dx1,dx2,dx3,dx4]).T
-    // console.log("dx1:",dx1)
-    // console.log("dx2:",dx2)
-    // console.log("dx3:",dx3)
-    // console.log("dx4:",dx4)
-    let offset = dx1.map((val,index)=>{
-        return [val,dx2[index],dx3[index],dx4[index]]
-    })
-    //console.log(offset)
-    // boundingbox = boundingbox + offset*12.0*scale
-    boundingbox = boundingbox.map((val,index0)=>{
-        return val.map((val,index1)=>{
-            return val + offset[index0][index1]*12.0*scale
-        })
-    })
-    //console.log("boundingbox",boundingbox)
-    // rectangles = np.concatenate((boundingbox,score),axis=1)
-    let rectangles = boundingbox.map((val,index)=>{
-        return val.concat(score[index])
-    })
-    //console.log("rectangles:",rectangles)
-    rectangles = rect2square(rectangles)
-    // let rectangless = rect2square([[1,4,2,6,0.3],[1,4,2,7,0.2],[1,5,2,6,0.1]]) //测试数据
-    let pick = []
-    // for i in range(len(rectangles)){
-    //     x1 = int(max(0     ,rectangles[i][0]))
-    //     y1 = int(max(0     ,rectangles[i][1]))
-    //     x2 = int(min(width ,rectangles[i][2]))
-    //     y2 = int(min(height,rectangles[i][3]))
-    //     sc = rectangles[i][4]
-    //     if x2>x1 and y2>y1:
-    //         pick.append([x1,y1,x2,y2,sc])
-    // }
-    rectangles.map(val=>{
-        let x1 = Math.floor(Math.max(0,val[0]))
-        let y1 = Math.floor(Math.max(0,val[1]))
-        let x2 = Math.floor(Math.min(width,val[2]))
-        let y2 = Math.floor(Math.min(height,val[3]))
-        let sc = val[4]
-        if(x2>x1 && y2>y1){
-            pick.push([x1,y1,x2,y2,sc])
-        }
-    })
-    return NMS(pick,0.5,'iou')
-}
-
-function rect2square(rectangles){
-    //w = rectangles[:,2] - rectangles[:,0]
-    let w = rectangles.map(val=>{
-        return val[2]-val[0]
-    })
-    //h = rectangles[:,3] - rectangles[:,1]
-    let h = rectangles.map(val=>{
-        return val[3]-val[1]
-    })
-    //l = np.maximum(w,h).T
-    let l = w.map((val,index)=>{
-        return val>h[index] ? val : h[index] //两个之中取最大值
-    })
-    // console.log("l:",l)
-    //rectangles[:,0] = rectangles[:,0] + w*0.5 - l*0.5
-    // rectangles[:,1] = rectangles[:,1] + h*0.5 - l*0.5 
-    // rectangles[:,2:4] = rectangles[:,0:2] + np.repeat([l], 2, axis = 0).T 
-    rectangles = rectangles.map((val,index)=>{
-        let res = []
-        res.push(val[0] + w[index]*0.5 - l[index]*0.5)
-        res.push(val[1] + h[index]*0.5 - l[index]*0.5)
-        res.push(val[0] + w[index]*0.5 - l[index]*0.5 + l[index])
-        res.push(val[1] + h[index]*0.5 - l[index]*0.5 + l[index])
-        res.push(val[4])
-        return res
-    })
-    return rectangles
-}
-
+//非极大值抑制算法
+//input parameters: 
+//  array[][] rectangles 所有的人脸矩形预测框
+//  float threshold 表示废弃候选框需要达到的重合度
+//  String type 该算法有“iom”和“iou”两种方式
+//output:
+//  array[][] result_rectangle 经过处理后的人脸矩形预测框
 function NMS(rectangles,threshold,type){
     if(rectangles.length==0){
         return rectangles
@@ -295,6 +160,162 @@ function NMS(rectangles,threshold,type){
     })
     // console.log("result_rectangle:",result_rectangle)
     return result_rectangle
+}
+
+
+//将矩形框重构成方形框
+//input parameters: 
+//  array[][] rectangles 若干人脸矩形预测框
+//output:
+//  array[][] rectangles 若干人脸方形预测框
+function rect2square(rectangles){
+    //w = rectangles[:,2] - rectangles[:,0]
+    let w = rectangles.map(val=>{
+        return val[2]-val[0]
+    })
+    //h = rectangles[:,3] - rectangles[:,1]
+    let h = rectangles.map(val=>{
+        return val[3]-val[1]
+    })
+    //l = np.maximum(w,h).T
+    let l = w.map((val,index)=>{
+        return val>h[index] ? val : h[index] //两个之中取最大值
+    })
+    // console.log("l:",l)
+    //rectangles[:,0] = rectangles[:,0] + w*0.5 - l*0.5
+    // rectangles[:,1] = rectangles[:,1] + h*0.5 - l*0.5 
+    // rectangles[:,2:4] = rectangles[:,0:2] + np.repeat([l], 2, axis = 0).T 
+    rectangles = rectangles.map((val,index)=>{
+        let res = []
+        res.push(val[0] + w[index]*0.5 - l[index]*0.5)
+        res.push(val[1] + h[index]*0.5 - l[index]*0.5)
+        res.push(val[0] + w[index]*0.5 - l[index]*0.5 + l[index])
+        res.push(val[1] + h[index]*0.5 - l[index]*0.5 + l[index])
+        res.push(val[4])
+        return res
+    })
+    return rectangles
+}
+
+function detect_face_12net(cls_prob,roi,out_side,scale,width,height,threshold){
+    let in_side = 2*out_side+11
+    let stride = 0
+    if(out_side != 1){
+        stride = (in_side-12)/(out_side-1)
+    }
+    //(x,y) = np.where(cls_prob>=threshold)
+    //////////////////////////////
+    let x = []
+    let y = []
+    cls_prob.map((val,index0)=>{
+        return val.map((val,index1)=>{
+            if(val>=threshold){
+                x.push(index0)
+                y.push(index1)
+            }
+        }) 
+    })
+
+    let boundingbox = [x,y]
+    boundingbox = Array(boundingbox[0].length).fill(null).map((val,index1) => {
+        return Array(boundingbox.length).fill(null).map((val,index2)=>{
+            return boundingbox[index2][index1]
+        })
+    })
+    // boundingbox = np.array([x,y]).T
+    // bb1 = np.fix((stride * (boundingbox) + 0 ) * scale)
+    let bb1 = boundingbox.map(val=>{
+        return val.map(val=>{
+            return Math.floor((val * stride + 0) * scale/1.0)
+        })
+    })
+    // bb2 = np.fix((stride * (boundingbox) + 11) * scale)
+    let bb2 = boundingbox.map(val=>{
+        return val.map(val=>{
+            return Math.floor((val * stride + 11) * scale/1.0)
+        })
+    })
+    //console.log(bb2,bb2.length)
+    // boundingbox = np.concatenate((bb1,bb2),axis = 1)
+    let arr1 = []
+    bb1.map((val,index0)=>{
+        let arr2 = []
+        val.map((val,index1)=>{
+            arr2.splice(index1,0,val) //保证是以x1,y1,x2,y2顺序
+            arr2.push(bb2[index0][index1])
+        })
+        arr1.push(arr2)
+    })
+    boundingbox = arr1
+    //console.log(boundingbox,boundingbox.length)
+    // dx1 = roi[0][x,y]
+    let dx1 = x.map((val,index)=>{
+        return roi[0][val][y[index]]
+    })
+    //console.log("cls_prob",cls_prob)
+    //console.log(x,y)
+    //console.log(dx1,dx1.length)
+    // dx2 = roi[1][x,y]
+    let dx2 = x.map((val,index)=>{
+        return roi[1][val][y[index]]
+    })
+    // dx3 = roi[2][x,y]
+    let dx3 = x.map((val,index)=>{
+        return roi[2][val][y[index]]
+    })
+    // dx4 = roi[3][x,y]
+    let dx4 = x.map((val,index)=>{
+        return roi[3][val][y[index]]
+    })
+    // score = np.array([cls_prob[x,y]]).T
+    let score = x.map((val,index)=>{
+        return [cls_prob[val][y[index]]]
+    })
+    //console.log(score)
+    // offset = np.array([dx1,dx2,dx3,dx4]).T
+    // console.log("dx1:",dx1)
+    // console.log("dx2:",dx2)
+    // console.log("dx3:",dx3)
+    // console.log("dx4:",dx4)
+    let offset = dx1.map((val,index)=>{
+        return [val,dx2[index],dx3[index],dx4[index]]
+    })
+    //console.log(offset)
+    // boundingbox = boundingbox + offset*12.0*scale
+    boundingbox = boundingbox.map((val,index0)=>{
+        return val.map((val,index1)=>{
+            return val + offset[index0][index1]*12.0*scale
+        })
+    })
+    //console.log("boundingbox",boundingbox)
+    // rectangles = np.concatenate((boundingbox,score),axis=1)
+    let rectangles = boundingbox.map((val,index)=>{
+        return val.concat(score[index])
+    })
+    //console.log("rectangles:",rectangles)
+    rectangles = rect2square(rectangles)
+    // let rectangless = rect2square([[1,4,2,6,0.3],[1,4,2,7,0.2],[1,5,2,6,0.1]]) //测试数据
+    let pick = []
+    // for i in range(len(rectangles)){
+    //     x1 = int(max(0     ,rectangles[i][0]))
+    //     y1 = int(max(0     ,rectangles[i][1]))
+    //     x2 = int(min(width ,rectangles[i][2]))
+    //     y2 = int(min(height,rectangles[i][3]))
+    //     sc = rectangles[i][4]
+    //     if x2>x1 and y2>y1:
+    //         pick.append([x1,y1,x2,y2,sc])
+    // }
+    rectangles.map(val=>{
+        let x1 = Math.floor(Math.max(0,val[0]))
+        let y1 = Math.floor(Math.max(0,val[1]))
+        let x2 = Math.floor(Math.min(width,val[2]))
+        let y2 = Math.floor(Math.min(height,val[3]))
+        let sc = val[4]
+        if(x2>x1 && y2>y1){
+            pick.push([x1,y1,x2,y2,sc])
+        }
+    })
+    return NMS(pick,0.3,'iou')
 }
 
 function filter_face_24net(cls_prob,roi,rectangles,width,height,threshold){

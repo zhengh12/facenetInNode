@@ -14,11 +14,12 @@ const config = require("../configParameter/config.json")
 // const batch_size = 32 //批次大小
 // const epochs = 5 //总迭代次数
 
-//如果在模型中定义tf的计算会导致内存溢出所以定义函数来防止这种情况
+//如果在模型中定义tf的计算会导致内存泄露所以定义函数来防止这种情况
 function LambdaFunction(input, scale){
     return tf.add(tf.mul(input[1],tf.scalar(scale)),input[0])
 }
 
+//加载原始预训练模型
 async function loadOriginalFacenetModel(modelPath){
     class Lambda017 extends tf.layers.Layer {
         constructor() {
@@ -111,7 +112,12 @@ async function loadOriginalFacenetModel(modelPath){
     return model
 }
 
-//定义三元组损失
+//定义三元组损失函数
+//input parameters: 
+//  tf.Tensor yTrue 真实值也就是标签，但triplet不需要标签参与计算
+//  tf.Tensor yPred 预测值，网络输出来的结果
+//output:
+//  tf.Tensor loss 网络的损失值，用来方向传播调整网络
 function triplet_loss(yTrue, yPred){
     return tfjs_core_1.tidy(function(){
         let [a_pred, p_pred, n_pred] = tf.split(yPred,3,1)
@@ -123,6 +129,8 @@ function triplet_loss(yTrue, yPred){
     })
 }
 
+//开始训练网络
+//训练过程的各个时期都有调用回调函数，但其内容还未具体定义，还未添加tensorBoard可视化训练结果
 async function train(){
     //加载模型
     let originalFacenetModel = await loadOriginalFacenetModel(config.modelPath.pretrainedFacenetModel)
@@ -160,6 +168,3 @@ async function train(){
 }
 
 train()
-// triplet_loss(null, tf.zeros([384]))
-// let result = originalFacenetModel.predict([tf.zeros([1,160,160,3]), tf.zeros([1,160,160,3]), tf.zeros([1,160,160,3])])
-// console.log(result)

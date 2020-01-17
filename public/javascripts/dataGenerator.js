@@ -3,7 +3,7 @@ const fs = require("fs");
 const detectFace = require("./detectFace")
 const facenet = require("./facenet")
 const readLine = require("readline");
-const config = require("../configParameter/config.json")
+const config = require("../configParameter/config.json") //从配置文件导入训练相关参数
 // const lfw_folder = 'E:/tensorflow/facenet-master/data/lfw' //验证lfw数据集地址
 // const CelebAFolder = 'E:/tensorflow/facenet-master/data/img_align_celeba'
 // const identity_annot_filename = 'E:/tensorflow/facenet-master/data/identity_CelebA.txt'
@@ -18,6 +18,10 @@ const config = require("../configParameter/config.json")
 // const oModelPath = './public/model/Onet/model.json'
 let mtcnnModel = []
 
+//文件逐行读取函数
+//input parameters: 
+//  String modelPath 网络拓扑结构json文件地址
+//  Function cb 回调函数
 function readFileToArr(fReadName, cb) {
 
     var arr = [];
@@ -33,11 +37,16 @@ function readFileToArr(fReadName, cb) {
     });
 }
 
-async function get_data_stats(){
+//从指定文件中读取celebA的图片名并标签对应关系
+//input parameters: 
+//  String celebAFileName celebA标记文件路径
+//output:
+//  Array[] Array[4] [ids, images.sort(), image2id, id2images] ids代表每张图片对应的id、images代表每张图片的文件名、image2id代表了文件名到id的映射、id2images代表了id到文件名的映射
+async function get_data_stats(celebAFileName){
     let lines = []
     let excludes = []
     await new Promise(resolve => {
-        readFileToArr(config.trainData.identity_annot_filename, function (arr) {
+        readFileToArr(celebAFileName, function (arr) {
             resolve('resolved');
             lines = arr;
         })
@@ -76,8 +85,13 @@ async function get_data_stats(){
 
 }
 
+//从数据集中随机的生成满足需要的triplet-loss数据元组
+//input parameters: 
+//  null
+//output:
+//  生成形如{'a': a_image, 'p': p_image, 'n': n_image}的数据集对象数组
 async function get_random_triplets(){
-    [ids, images, image2id, id2images] = await get_data_stats()
+    [ids, images, image2id, id2images] = await get_data_stats(config.trainData.identity_annot_filename)
     images = images.slice(0, config.trainParam.num_train_samples)
     let data_set = []
 
@@ -115,6 +129,11 @@ async function get_random_triplets(){
     return data_set
 }
 
+//构建训练集数据生成迭代器
+//input parameters: 
+//  null
+//output:
+//  Object {value:{xs:一个批次的训练数据,ys:对应的标签}, done: true/flase 代表了迭代器是否结束}
 async function makeIterator() {
     let index = 0;
     let datas =  await get_random_triplets() 
@@ -125,7 +144,7 @@ async function makeIterator() {
             let i = index * config.trainParam.batch_size
             let length = Math.min(config.trainParam.batch_size, (datas.length - i))
             console.log("train ", index, " batch size: ", length)
-            let batch_dummy_target = tf.zeros([length, config.trainParam.embedding_size * 3], "float32")
+            let batch_dummy_target = tf.zeros([length, config.trainParam.embedding_size * 3], "float32")//由于triplet-loss训练不需要标签，所以batch_dummy_target在这里可以任意初始化
             let batch_inputs = [[],[],[]]
             for(let j=0; j<length; j++){
                 console.log(j)
@@ -147,6 +166,8 @@ async function makeIterator() {
                     })
                     imgTensorFace = tf.image.resizeBilinear(tf.tensor(imgTensorFace,[rectangles[0][3]-rectangles[0][1],rectangles[0][2]-rectangles[0][0],3]),[160,160])
                     imgTensorFace = facenet.prewhiten(imgTensorFace)
+                    console.log(imgTensorFace)
+                    imgTensorFace.print()
                     batch_inputs[index].push(imgTensorFace.arraySync())
                 })
             }
@@ -161,6 +182,11 @@ async function makeIterator() {
     return iterator;
 }
 
+//构建验证集数据生成迭代器
+//input parameters: 
+//  null
+//output:
+//  Object {value:{xs:一个批次的验证数据,ys:对应的标签}, done: true/flase 代表了迭代器是否结束}
 async function makeIterator1() {
     let index = 0;
     const lfw_val_triplets = require(config.trainData.lfw_val_triplets)
@@ -207,6 +233,7 @@ async function makeIterator1() {
     return iterator;
 }
 
+//通过传入的usage来决定是返回训练集生成器还是验证集生成器
 async function GetData(usage){
     mtcnnModel = await detectFace.loadModel(config.modelPath.pModelPath, config.modelPath.rModelPath, config.modelPath.oModelPath)
     if(usage=='train'){
