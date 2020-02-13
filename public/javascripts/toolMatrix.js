@@ -8,16 +8,16 @@ const config = require("../configParameter/config.json")
 //  Number array[n] scales 表示缩放比例的数组
 function calculateScales(h, w){
     let pr_scale = 1.0
-    if (Math.min(w,h)>500){
-        pr_scale = 500.0/Math.min(h,w)
-        w = w*pr_scale
-        h = h*pr_scale
-    }
-    else if (Math.max(w,h)<500){
-        pr_scale = 500.0/Math.max(h,w)
-        w = w*pr_scale
-        h = h*pr_scale
-    }
+    // if (Math.min(w,h)>500){
+    //     pr_scale = 500.0/Math.min(h,w)
+    //     w = w*pr_scale
+    //     h = h*pr_scale
+    // }
+    // else if (Math.max(w,h)<500){
+    //     pr_scale = 500.0/Math.max(h,w)
+    //     w = w*pr_scale
+    //     h = h*pr_scale
+    // }
     //multi-scale
     let scales = []
     let factor = config.mtcnnParam.imagePyramidFactor //表示缩小后面积是原面积的2/3，factor=根号2/3，值约接近1则人脸检测准度越高，但同样时间花费也高

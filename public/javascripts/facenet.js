@@ -4,8 +4,9 @@ const images = require("images");
 const detectFace = require("./detectFace")
 const alignFace = require("./alignFace")
 const config = require("../configParameter/config.json") //导入配置参数文件
-const image1Path = "./public/images/RandomForestTrainData/TaylorSwift/TaylorSwift0003.jpeg"
-const image2Path = "./public/images/tywai.jpeg"
+const image1Path = "./public/images/TaylorSwift/TaylorSwift0001.jpg"
+const image2Path = "./public/images/TaylorSwift/TaylorSwift0002.jpg"
+//E:/tensorflow/Keras_TP-GAN-master/images/x2.png
 
 //导入facenet网络模型
 async function loadFacenetModel(modelPath){
@@ -179,6 +180,10 @@ function prewhiten(x) {
 function faceVector(model, imagePath, Pnet, Rnet, Onet){
     let img = fs.readFileSync(imagePath)
     let imgTensor = tf.node.decodeImage(img)
+    if(imgTensor.shape[2] !== 3){
+        [imgTensor, useless] = tf.split(imgTensor, [3, 1], 2)
+        console.log(imgTensor)
+    }
     let rectangles = detectFace.detectFace(imgTensor, config.mtcnnParam.threshold, Pnet, Rnet, Onet)
     imgTensor = imgTensor.arraySync()
     let imgTensorFace = []
@@ -208,6 +213,10 @@ function faceVector(model, imagePath, Pnet, Rnet, Onet){
 async function faceAlignVector(model, imagePath, Pnet, Rnet, Onet){
     let img = fs.readFileSync(imagePath)
     let imgTensor = tf.node.decodeImage(img)
+    if(imgTensor.shape[2] !== 3){
+        [imgTensor, useless] = tf.split(imgTensor, [3, 1], 2)
+        console.log(imgTensor)
+    }
     let rectangles = detectFace.detectFace(imgTensor, config.mtcnnParam.threshold, Pnet, Rnet, Onet)
     let imgTensorFace = await alignFace.affineImage(imgTensor, rectangles)
     if(imgTensorFace !== "error"){
@@ -219,7 +228,7 @@ async function faceAlignVector(model, imagePath, Pnet, Rnet, Onet){
         // out.print()
         return out
     }else{
-        console.log("放弃使用人脸对齐函数！")
+        //console.log("放弃使用人脸对齐函数！")
         imgTensorFace = tf.slice(imgTensor, [rectangles[0][1], rectangles[0][0]], [rectangles[0][3]-rectangles[0][1], rectangles[0][2]-rectangles[0][0]])
         imgTensorFace = tf.image.resizeBilinear(imgTensorFace,[config.facenetParam.inputImageSize,config.facenetParam.inputImageSize])
         imgTensorFace = prewhiten(imgTensorFace)
@@ -248,7 +257,7 @@ async function test(){
     dist2.print()
     // console.timeEnd('run 2 time')
 }
-// test()
+test()
 
 exports.faceVector = faceVector
 exports.faceAlignVector = faceAlignVector
