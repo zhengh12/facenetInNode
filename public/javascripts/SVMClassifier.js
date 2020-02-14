@@ -58,7 +58,7 @@ async function loadFiles(dataPath, FacenetModel, Pnet, Rnet, Onet){
 }
 
 async function SVMClassifier(){
-    const trainDatapath = './public/images/RandomForestTrainData1/'
+    const trainDatapath = './public/images/RandomForestTrainData/'
     const predictDatapath = './public/images/RandomForestPredictData/'
     const modelPath = "./public/model/Facenet1/model.json"
     const pModelPath = './public/model/Pnet/model.json'
@@ -82,14 +82,46 @@ async function SVMClassifier(){
         vectorsAvg.push(tf.div(sum,tf.scalar(subVectors.length)).arraySync())
     } 
     let lowVectorsAll = vectorsAll //采用全部向量
-    let lowVectors = vectorsAvg //采用类内平均向量
+    let convectorsAvg = vectorsAvg //采用类内平均向量
     
-    let predictions = []
-    for(let i=0; i<trainVectors.length; i++){
-        for(let j=0; j<trainVectors[i].length; j++){
-            predictions.push(i)
+    let furthest = []
+    let max = 0
+    for(let m=0; m<convectorsAvg.length; m++){
+        for(let n=0; n<convectorsAvg.length; n++){
+            let dis = tf.sqrt(tf.sum(tf.squaredDifference(tf.tensor(convectorsAvg[m]),tf.tensor(convectorsAvg[n])))).arraySync()
+            furthest = dis>max ? [m,n] : furthest
+            max = dis>max ? dis : max
         }
     }
+    console.log(furthest)
+    //let deletenum = trainVector[furthest[0]]
+    let class1 = trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length))
+    let class2 = trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length))
+    let class1All = []
+    let class2All = []
+    for(subVectors of class1){
+        for(val of subVectors){
+            class1All.push(val)
+        }
+    } 
+    for(subVectors of class2){
+        for(val of subVectors){
+            class2All.push(val)
+        }
+    } 
+    console.log(class1All.length, class2All.length)
+    trainVectors = trainVectors[furthest[0]].concat(trainVectors[furthest[1]])
+    console.log(trainVectors)
+    let predictions = []
+    // for(let i=0; i<trainVectors.length; i++){
+    //     for(let j=0; j<trainVectors[i].length; j++){
+    //         if(i==0){
+    //             predictions.push(1)
+    //         }else{
+    //             predictions.push(-1)
+    //         }
+    //     }
+    // }
     var options = {
         C: 0.01,
         tol: 10e-4,
@@ -100,10 +132,11 @@ async function SVMClassifier(){
             sigma: 0.5
         }
     }
+    console.log(predictions.slice(0,6))
     var svm = new SVM(options)
-    console.log(lowVectorsAll)
-    svm.train(lowVectorsAll, predictions)
-    console.log(svm.predict(lowVectorsAll))
+    svm.train(lowVectorsAll.slice(0,6), predictions.slice(0,6))
+    console.log(predictVectors[0].length, predictVectors[1].length, predictVectors.length)
+    console.log(svm.predict(predictVectors[1]))
 } 
 
 SVMClassifier()
