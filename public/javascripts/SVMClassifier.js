@@ -95,24 +95,32 @@ async function SVMClassifier(){
     }
     console.log(furthest)
     //let deletenum = trainVector[furthest[0]]
-    let class1 = trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length))
-    let class2 = trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length))
-    let class1All = []
-    let class2All = []
-    for(subVectors of class1){
-        for(val of subVectors){
-            class1All.push(val)
-        }
-    } 
-    for(subVectors of class2){
-        for(val of subVectors){
-            class2All.push(val)
-        }
-    } 
-    console.log(class1All.length, class2All.length)
-    trainVectors = trainVectors[furthest[0]].concat(trainVectors[furthest[1]])
-    console.log(trainVectors)
+    // let class1 = trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length))
+    // let class2 = trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length))
+    // let class1All = []
+    // let class2All = []
+    // for(subVectors of class1){
+    //     for(val of subVectors){
+    //         class1All.push(val)
+    //     }
+    // } 
+    // for(subVectors of class2){
+    //     for(val of subVectors){
+    //         class2All.push(val)
+    //     }
+    // } 
+    // console.log(class1All.length, class2All.length)
+    // let len = class1All.length
+    // trainVectors = class1All.concat(class2All)
+    let choiceTrainVectors = trainVectors[furthest[0]].concat(trainVectors[furthest[1]])
+    console.log(choiceTrainVectors.length)
     let predictions = []
+    for(let i=0; i<trainVectors[furthest[0]].length; i++){
+        predictions.push(1)
+    }
+    for(let i=0; i<trainVectors[furthest[1]].length; i++){
+        predictions.push(-1)
+    }
     // for(let i=0; i<trainVectors.length; i++){
     //     for(let j=0; j<trainVectors[i].length; j++){
     //         if(i==0){
@@ -132,11 +140,15 @@ async function SVMClassifier(){
             sigma: 0.5
         }
     }
-    console.log(predictions.slice(0,6))
+    console.log(predictions)
     var svm = new SVM(options)
-    svm.train(lowVectorsAll.slice(0,6), predictions.slice(0,6))
+    svm.train(choiceTrainVectors, predictions)
     console.log(predictVectors[0].length, predictVectors[1].length, predictVectors.length)
+    console.log(svm.predict(trainVectors[0]))
+    console.log(svm.predict(trainVectors[9]))
     console.log(svm.predict(predictVectors[1]))
+    console.log(svm.predict(predictVectors[0]))
+    console.log(svm.predict(predictVectors[9]))
 } 
 
 SVMClassifier()
