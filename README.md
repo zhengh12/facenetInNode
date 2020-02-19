@@ -8,3 +8,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.02.14 SVMClassifier.js 采用新的方法训练和组织SVM分类器
 * 2020.02.17 SVMClassifier.js 测试分类器
 * 2020.02.18 SVMClassifier.js 尝试使用递归函数构造分类数
+* 2020.02.19 SVMClassifier.js 导出json格式的树形分类器，并且可以二次加载。
