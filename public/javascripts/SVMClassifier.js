@@ -57,7 +57,7 @@ async function loadFiles(dataPath, FacenetModel, Pnet, Rnet, Onet){
     return vectors
 }
 
-function createTree(trainVectors, predictVectors, SVMTree, length){
+function createTree(trainVectors, predictVectors, SVMTree, offset0, offset1, del){
     let vectorsAll = []
     let vectorsAvg = []
     for(subVectors of trainVectors){
@@ -130,12 +130,15 @@ function createTree(trainVectors, predictVectors, SVMTree, length){
     console.log(svm.predict(trainVectors[furthest[0]]),svm.predict(trainVectors[furthest[1]]))
     console.log(svm.predict(predictVectors[1]))
     // console.log(svm.predict(predictVectors[furthest[1]]))
-    SVMTree.leftC = {target: furthest[0]+(length-trainVectors.length)}
-    SVMTree.rightC = {target: furthest[1]+(length-trainVectors.length)}
+    offset0 = del<=furthest[0]?offset0+1:offset0
+    offset1 = del<=furthest[1]?offset1+1:offset1
+    SVMTree.leftC = {target: furthest[0]+offset0}
+    SVMTree.rightC = {target: furthest[1]+offset1}
     if(trainVectors.length>2){
         console.log(trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length)).length)
-        createTree(trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length)), predictVectors.slice(0, furthest[0]).concat(predictVectors.slice(furthest[0]+1, predictVectors.length)), SVMTree.leftC, length)
-        createTree(trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length)), predictVectors.slice(0, furthest[1]).concat(predictVectors.slice(furthest[1]+1, predictVectors.length)), SVMTree.rightC, length)
+        console.log("del:",del, offset0, offset1)
+        createTree(trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length)), predictVectors.slice(0, furthest[1]).concat(predictVectors.slice(furthest[1]+1, predictVectors.length)), SVMTree.leftC, offset0, offset1, furthest[1])
+        createTree(trainVectors.slice(0, furthest[0]).concat(trainVectors.slice(furthest[0]+1, trainVectors.length)), predictVectors.slice(0, furthest[0]).concat(predictVectors.slice(furthest[0]+1, predictVectors.length)), SVMTree.rightC, offset0, offset1, furthest[0])
     }
 }
 async function SVMClassifier(){
@@ -152,8 +155,16 @@ async function SVMClassifier(){
     let trainVectors = await loadFiles(trainDatapath, FacenetModel, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
     let predictVectors = await loadFiles(predictDatapath, FacenetModel, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])   
     let SVMTree = {}
-    createTree(trainVectors.slice(1,5), predictVectors.slice(1,5), SVMTree, trainVectors.slice(1,5).length)
+    createTree(trainVectors.slice(0,4), predictVectors.slice(0,4), SVMTree, 0, 0, trainVectors.slice(0,4).length)
     console.log(SVMTree)
+    console.log(SVMTree.leftC.leftC.leftC)
+    console.log(SVMTree.leftC.leftC.rightC)
+    console.log(SVMTree.leftC.rightC.leftC)
+    console.log(SVMTree.leftC.rightC.rightC)
+    console.log(SVMTree.rightC.leftC.leftC)
+    console.log(SVMTree.rightC.leftC.rightC)
+    console.log(SVMTree.rightC.rightC.leftC)
+    console.log(SVMTree.rightC.rightC.rightC)
 } 
 
 SVMClassifier()

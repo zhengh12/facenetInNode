@@ -9,3 +9,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.02.17 SVMClassifier.js 测试分类器
 * 2020.02.18 SVMClassifier.js 尝试使用递归函数构造分类数
 * 2020.02.19 SVMClassifier.js 导出json格式的树形分类器，并且可以二次加载。
+* 2020.02.20 SVMClassifier.js 了解了GAN的训练方式。利用树形分类器得出预测结果。
