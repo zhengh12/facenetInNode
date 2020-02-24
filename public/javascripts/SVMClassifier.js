@@ -163,14 +163,15 @@ async function SVMClassifier(){
     console.log(index)
     createTree(trainVectors.slice(0,4), predictVectors.slice(0,4), SVMTree, index)
     console.log(SVMTree)
-    console.log(SVMTree.leftC.leftC.leftC)
-    console.log(SVMTree.leftC.leftC.rightC)
-    console.log(SVMTree.leftC.rightC.leftC)
-    console.log(SVMTree.leftC.rightC.rightC)
-    console.log(SVMTree.rightC.leftC.leftC)
-    console.log(SVMTree.rightC.leftC.rightC)
-    console.log(SVMTree.rightC.rightC.leftC)
-    console.log(SVMTree.rightC.rightC.rightC)
+    // console.log(SVMTree.leftC.leftC.leftC)
+    // console.log(SVMTree.leftC.leftC.rightC)
+    // console.log(SVMTree.leftC.rightC.leftC)
+    // console.log(SVMTree.leftC.rightC.rightC)
+    // console.log(SVMTree.rightC.leftC.leftC)
+    // console.log(SVMTree.rightC.leftC.rightC)
+    // console.log(SVMTree.rightC.rightC.leftC)
+    // console.log(SVMTree.rightC.rightC.rightC)
+
 
     let scanNode = SVMTree
     while(scanNode.model != null){
