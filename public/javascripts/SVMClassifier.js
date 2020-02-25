@@ -124,8 +124,8 @@ function createTree(trainVectors, predictVectors, SVMTree, index){
         kernel: 'linear',
     }
     var svm = new SVM(options)
-    SVMTree.model = svm.toJSON()
     svm.train(choiceTrainVectors, predictions)
+    SVMTree.model = svm.toJSON()
     console.log(trainVectors.length, predictVectors.length)
     console.log(svm.predict(trainVectors[furthest[0]]),svm.predict(trainVectors[furthest[1]]))
     console.log(svm.predict(predictVectors[1]))
@@ -143,6 +143,24 @@ function createTree(trainVectors, predictVectors, SVMTree, index){
         createTree(trainVectors.slice(0, furthest[1]).concat(trainVectors.slice(furthest[1]+1, trainVectors.length)), predictVectors.slice(0, furthest[1]).concat(predictVectors.slice(furthest[1]+1, predictVectors.length)), SVMTree.rightC, index.slice(0, furthest[1]).concat(index.slice(furthest[1]+1, index.length)))
     }
 }
+
+function TreePredict(SVMTree, toPredict){
+    let scanNode = SVMTree
+    while(scanNode.leftC.model != null){
+        let importedSvm = SVM.load(scanNode.model)
+        console.log(scanNode.target)
+        if(importedSvm.predict(toPredict)==1){
+            scanNode = scanNode.rightC
+        }else{
+            scanNode = scanNode.leftC
+        }
+    }
+    // console.log(scanNode)
+    let resultSVM = SVM.load(scanNode.model)
+    let target = resultSVM.predict(toPredict)==1 ? scanNode.leftC.target : scanNode.rightC.target
+    console.log("final:",target)
+}
+
 async function SVMClassifier(){
     const trainDatapath = './public/images/RandomForestTrainData/'
     const predictDatapath = './public/images/RandomForestPredictData/'
@@ -157,31 +175,26 @@ async function SVMClassifier(){
     let trainVectors = await loadFiles(trainDatapath, FacenetModel, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])
     let predictVectors = await loadFiles(predictDatapath, FacenetModel, mtcnnModel[0], mtcnnModel[1], mtcnnModel[2])   
     let SVMTree = {}
-    let index = trainVectors.slice(0,4).map((val, index)=>{
+    let index = trainVectors.slice(0,5).map((val, index)=>{
         return index
     })
     console.log(index)
-    createTree(trainVectors.slice(0,4), predictVectors.slice(0,4), SVMTree, index)
-    console.log(SVMTree)
-    // console.log(SVMTree.leftC.leftC.leftC)
-    // console.log(SVMTree.leftC.leftC.rightC)
-    // console.log(SVMTree.leftC.rightC.leftC)
-    // console.log(SVMTree.leftC.rightC.rightC)
-    // console.log(SVMTree.rightC.leftC.leftC)
-    // console.log(SVMTree.rightC.leftC.rightC)
-    // console.log(SVMTree.rightC.rightC.leftC)
-    // console.log(SVMTree.rightC.rightC.rightC)
+    createTree(trainVectors.slice(0,5), predictVectors.slice(0,5), SVMTree, index)
 
-
-    let scanNode = SVMTree
-    while(scanNode.model != null){
-        let importedSvm = SVM.load(scanNode.model)
-        console.log(importedSvm.predict(trainVectors[0][0]))
-        if(importedSvm.predict(trainVectors[0][0])[0]==1){
-            scanNode = scanNode.leftC
-        }else{
-            scanNode = scanNode.rightC
-        }
+    for(let i=0; i<10; i++){
+        TreePredict(SVMTree, trainVectors[0][0])
+    }
+    for(let i=0; i<10; i++){
+        TreePredict(SVMTree, trainVectors[1][0])
+    }
+    for(let i=0; i<10; i++){
+        TreePredict(SVMTree, trainVectors[2][0])
+    }
+    for(let i=0; i<10; i++){
+        TreePredict(SVMTree, trainVectors[3][0])
+    }
+    for(let i=0; i<10; i++){
+        TreePredict(SVMTree, trainVectors[4][0])
     }
 } 
 
