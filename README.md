@@ -14,3 +14,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.02.24 进行了不同数据集上的测试，继续了解GAN的构建思路。
 * 2020.02.25 GAN.js 进行简单DCGAN的尝试。
 * 2020.02.26 GAN.js DCGAN的generator model和discriminator model的构建。
+* 2020.02.27 GAN.js 尝试从mnist数据集中进行小型DCGAN的训练。
