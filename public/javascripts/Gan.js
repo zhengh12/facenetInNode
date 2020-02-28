@@ -32,6 +32,7 @@ function discriminator_model(){
   return model
 }
 
+
 function generator_containing_discriminator(g, d){
   let model = tf.sequential()
   model.add(g)
@@ -40,22 +41,23 @@ function generator_containing_discriminator(g, d){
   return model
 }
 
-def combine_images(generated_images):
-    num = generated_images.shape[0]
-    width = int(math.sqrt(num))
-    height = int(math.ceil(float(num)/width))
-    shape = generated_images.shape[1:3]
-    image = np.zeros((height*shape[0], width*shape[1]),
-                     dtype=generated_images.dtype)
-    for index, img in enumerate(generated_images):
-        i = int(index/width)
-        j = index % width
-        image[i*shape[0]:(i+1)*shape[0], j*shape[1]:(j+1)*shape[1]] = \
-            img[:, :, 0]
-    return image
+function combine_images(generated_images){
+  num = generated_images.shape[0]
+  width = int(math.sqrt(num))
+  height = int(math.ceil(float(num)/width))
+  shape = generated_images.shape[1:3]
+  image = np.zeros((height*shape[0], width*shape[1]),
+                    dtype=generated_images.dtype)
+  for index, img in enumerate(generated_images):
+      i = int(index/width)
+      j = index % width
+      image[i*shape[0]:(i+1)*shape[0], j*shape[1]:(j+1)*shape[1]] = \
+          img[:, :, 0]
+  return image
+}
 
 
-def train(BATCH_SIZE):
+function train(BATCH_SIZE){
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
     X_train = (X_train.astype(np.float32) - 127.5)/127.5
     X_train = X_train[:, :, :, None]
@@ -94,3 +96,4 @@ def train(BATCH_SIZE):
             if index % 10 == 9:
                 g.save_weights('generator', True)
                 d.save_weights('discriminator', True)
+}
