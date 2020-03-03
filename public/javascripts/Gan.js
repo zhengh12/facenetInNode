@@ -94,6 +94,8 @@ function train(BATCH_SIZE){
             d.trainable = True
             print("batch %d g_loss : %f" % (index, g_loss))
             if index % 10 == 9:
+            
                 g.save_weights('generator', True)
                 d.save_weights('discriminator', True)
 }
+
