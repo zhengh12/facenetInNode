@@ -17,3 +17,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.02.27 GAN.js 尝试从mnist数据集中进行小型DCGAN的训练。
 * 2020.02.28 GAN.js 初步了解有关人脸修复GAN目前应用的类型。
 * 2020.03.03 GAN.js 加载minist数据集，了解PI-GAN，LB-GAN，BoostGAN，关于面部转正的方法。
+* 2020.03.04 DCGan.js 使用类的方法重新构建Gan函数。
