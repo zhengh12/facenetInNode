@@ -19,3 +19,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.03.03 GAN.js 加载minist数据集，了解PI-GAN，LB-GAN，BoostGAN，关于面部转正的方法。
 * 2020.03.04 DCGan.js 使用类的方法重新构建Gan函数。
 * 2020.03.05 DCGan.js 继续进行train方法和save_img方法的实现。
+* 2020.03.06 DCGan.js 采用randomNumArr方法随机的获取mnist训练集,对于初始噪声采用从正态分布中采样的值

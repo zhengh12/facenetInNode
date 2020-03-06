@@ -1,4 +1,6 @@
 const tf = require("@tensorflow/tfjs-node");
+const mnist = require('mnist-data');
+const { cache, trainingImagesUrl, trainingLabelsUrl } = require("mnist-dataset");
 
 class DCGan {
     constructor() {
@@ -82,50 +84,62 @@ class DCGan {
         return tf.model({inputs:noise, outputs:res})
     }
 
+    randomNumArr(minNum, maxNum, size){ 
+        switch(arguments.length){ 
+            case 1: 
+                return parseInt(Math.random()*minNum+1,10); 
+            break; 
+            case 2: 
+                return parseInt(Math.random()*(maxNum-minNum+1)+minNum,10); 
+            break; 
+            case 3:
+                let randomNumArr = []
+                for(let i=0; i<size; i++){
+                    randomNumArr.push(parseInt(Math.random()*(maxNum-minNum+1)+minNum,10))
+                }
+                return randomNumArr
+            default: 
+                return 0; 
+            break; 
+        } 
+    } 
+
     train(epochs, batch_size=128, save_interval=50){
         // Load the dataset
+        // const trainingImages = await cache(trainingImagesUrl); // [[Number]] (i.e. [[0, 0, 0, ...], [0, 0, 0, ...], ...])
+        const dataLength = 60000
+        let training_data = mnist.training(dataLength).images.values;
+        // console.log(trainingImages[0],trainingImages[0].length)
+        console.log(training_data.length, training_data[0].length, training_data[0][0].length) 
+        training_data = tf.tensor(training_data)
+        console.log(training_data)
         // Rescale -1 to 1
-        X_train = X_train / 127.5 - 1.
-        X_train = np.expand_dims(X_train, axis=3)
+        training_data = tf.div(training_data.sub(tf.scalar(127.5)), tf.scalar(127.5))
+        training_data = tf.expandDims(training_data, 3)
+        console.log(training_data)
 
         // Adversarial ground truths
-        valid = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        let valid = tf.ones([batch_size, 1]) 
+        let fake = tf.zeros([batch_size, 1])
 
-        for epoch in range(epochs):
-
+        for(let i=0; i<epochs; i++){
             // ---------------------
             //  Train Discriminator
             // ---------------------
 
             // Select a random half of images
-            idx = np.random.randint(0, X_train.shape[0], batch_size)
-            imgs = X_train[idx]
+            let idx = this.randomNumArr(0, dataLength, batch_size)
+            console.log(idx)
+            
+            return
 
-            // Sample noise and generate a batch of new images
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-            gen_imgs = self.generator.predict(noise)
-
-            // Train the discriminator (real classified as ones and generated as zeros)
-            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-
-            // ---------------------
-            //  Train Generator
-            // ---------------------
-
-            // Train the generator (wants discriminator to mistake images as real)
-            g_loss = self.combined.train_on_batch(noise, valid)
-
-            // Plot the progress
-            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
-
-            // If at save interval => save generated image samples
-            if epoch % save_interval == 0:
-                self.save_imgs(epoch)
-        // Rescale -1 to 1
+        }
     }
 }
 
-let gan = new DCGan()
+function goit(){
+    let gan = new DCGan()
+    gan.train(epochs=4000, batch_size=32, save_interval=50)
+}
+
+goit()
