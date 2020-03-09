@@ -104,42 +104,67 @@ class DCGan {
         } 
     } 
 
-    train(epochs, batch_size=128, save_interval=50){
+    async train(epochs, batch_size=128, save_interval=50){
+
         // Load the dataset
         // const trainingImages = await cache(trainingImagesUrl); // [[Number]] (i.e. [[0, 0, 0, ...], [0, 0, 0, ...], ...])
         const dataLength = 60000
-        let training_data = mnist.training(dataLength).images.values;
+        let training_datas = mnist.training(dataLength).images.values;
         // console.log(trainingImages[0],trainingImages[0].length)
-        console.log(training_data.length, training_data[0].length, training_data[0][0].length) 
-        training_data = tf.tensor(training_data)
-        console.log(training_data)
-        // Rescale -1 to 1
-        training_data = tf.div(training_data.sub(tf.scalar(127.5)), tf.scalar(127.5))
-        training_data = tf.expandDims(training_data, 3)
-        console.log(training_data)
-
-        // Adversarial ground truths
-        let valid = tf.ones([batch_size, 1]) 
-        let fake = tf.zeros([batch_size, 1])
+        console.log(training_datas.length, training_datas[0].length, training_datas[0][0].length)
 
         for(let i=0; i<epochs; i++){
             // ---------------------
             //  Train Discriminator
-            // ---------------------
+            // --------------------- 
 
             // Select a random half of images
             let idx = this.randomNumArr(0, dataLength, batch_size)
-            console.log(idx)
+            let training_data = idx.map(val=>{
+                return training_datas[val]
+            })
+            console.log(training_data.length)
+
+            training_data = tf.tensor(training_data)
+            console.log(training_data)
+            // Rescale -1 to 1
+            training_data = tf.div(training_data.sub(tf.scalar(127.5)), tf.scalar(127.5))
+            training_data = tf.expandDims(training_data, 3)
+            console.log(training_data)
+
+            // Adversarial ground truths
+            let valid = tf.ones([batch_size, 1]) 
+            let fake = tf.zeros([batch_size, 1])
+
+            // Sample noise and generate a batch of new images
+            // let noise = tf.randomNormal([batch_size, this.latent_dim], 0, 1)
+            let noise = tf.ones([batch_size, this.latent_dim])
+            let gen_imgs = this.generator.predict(noise)
+            gen_imgs.print()
             
             return
+            // Train the discriminator (real classified as ones and generated as zeros)
+            let d_loss_real = await this.discriminator.trainOnBatch(training_data, valid)
+            let d_loss_fake = await this.discriminator.trainOnBatch(gen_imgs, fake)
+            console.log(d_loss_real, d_loss_fake)
+            let d_loss = tf.mul(tf.scalar(0.5), tf.add(d_loss_real, d_loss_fake))
 
+            d_loss.print()
+            // ---------------------
+            //  Train Generator
+            // ---------------------
+
+            // Train the generator (wants discriminator to mistake images as real)
+            let g_loss = await this.combined.trainOnBatch(noise, valid)
+
+            console.log(i, " [D loss: ", d_loss.arraySync()[0], ", acc.: ", 100*d_loss.arraySync()[1], "] [G loss: ", g_loss, "]")
         }
     }
 }
 
-function goit(){
+async function goit(){
     let gan = new DCGan()
-    gan.train(epochs=4000, batch_size=32, save_interval=50)
+    await gan.train(epochs=4000, batch_size=32, save_interval=50)
 }
 
 goit()
