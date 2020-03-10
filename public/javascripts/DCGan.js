@@ -167,4 +167,5 @@ async function goit(){
     await gan.train(epochs=4000, batch_size=32, save_interval=50)
 }
 
+
 goit()

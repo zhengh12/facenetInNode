@@ -21,3 +21,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.03.05 DCGan.js 继续进行train方法和save_img方法的实现。
 * 2020.03.06 DCGan.js 采用randomNumArr方法随机的获取mnist训练集,对于初始噪声采用从正态分布中采样的值
 * 2020.03.09 DCGan.js 修改了模型中的一些错误，使训练结果趋于相似。
+* 2020.03.10 查阅了一些关于GAN实现异常检测的资料，着手利用anoGAN实现异常检测。
