@@ -23,3 +23,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.03.09 DCGan.js 修改了模型中的一些错误，使训练结果趋于相似。
 * 2020.03.10 查阅了一些关于GAN实现异常检测的资料，着手利用anoGAN实现异常检测。
 * 2020.03.11 anoGAN.js 阅读了anoGAN的keras实现，完成anoGAN网络的搭建。
+* 2020.03.12 anoGAN.js compute_anomaly_score()异常得分函数。

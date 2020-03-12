@@ -49,4 +49,12 @@ function train(BATCH_SIZE, X_train){
     d.trainable = true
 }
 
+function compute_anomaly_score(model, x){
+    z = np.random.uniform(0, 1, size=(1, 100))
+    intermidiate_model = feature_extractor()
+    d_x = intermidiate_model.predict(x)
+    loss = model.fit(z, [x, d_x], epochs=500, verbose=0)
+    similar_data, _ = model.predict(z)
+    return loss.history['loss'][-1], similar_data
+}
 train()
