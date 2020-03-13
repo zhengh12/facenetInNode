@@ -1,4 +1,5 @@
 const tf = require("@tensorflow/tfjs-node");
+const mnist = require('mnist-data');
 
 function generator_model(){
     let generator = tf.sequential()
@@ -10,7 +11,7 @@ function generator_model(){
     generator.add(tf.layers.leakyReLU({alpha:0.2}))
     generator.add(tf.layers.upSampling2d({size:[2,2]}))
     generator.add(tf.layers.conv2d({filters:1, kernelSize:[5,5], padding:'same', activation:'tanh'}))
-    generator.compile({loss: 'binaryCrossentropy', optimizer: 'adam'})
+    generator.compile({loss: 'binaryCrossentropy', optimizer: 'adam', metrics: ['acc']})
     return generator
 }
 
@@ -24,7 +25,7 @@ function discriminator_model(){
     discriminator.add(tf.layers.dropout({rate:0.3}))
     discriminator.add(tf.layers.flatten())
     discriminator.add(tf.layers.dense({units:1, activation:'sigmoid'}))
-    discriminator.compile({loss: 'binaryCrossentropy', optimizer: 'adam'})
+    discriminator.compile({loss: 'binaryCrossentropy', optimizer: 'adam', metrics: ['acc']})
     return discriminator
 }
 
@@ -34,11 +35,11 @@ function generator_containing_discriminator(g, d){
     let x = g.apply(ganInput)
     let ganOutput = d.apply(x)
     let gan = tf.model({inputs:ganInput, outputs:ganOutput})
-    gan.compile({loss: 'binaryCrossentropy', optimizer: 'adam'})
+    gan.compile({loss: 'binaryCrossentropy', optimizer: 'adam', metrics: ['acc']})
     return gan 
 }
 
-function train(BATCH_SIZE, X_train){
+async function train(BATCH_SIZE, X_train){
     let d = discriminator_model()
     console.log("#### discriminator ######")
     d.summary()
@@ -47,14 +48,37 @@ function train(BATCH_SIZE, X_train){
     g.summary()
     let d_on_g = generator_containing_discriminator(g, d)
     d.trainable = true
+    let epoch = 100
+    for(let i=0; i<epoch; i++){
+        for(let j=0; j<X_train.shape[0]/BATCH_SIZE; j++){
+            let noise = tf.randomUniform([BATCH_SIZE, 100], 0, 1)
+            let image_batch = X_train.slice([j*BATCH_SIZE, 0, 0, 0], [(j+1)*BATCH_SIZE, 28, 28, 1])
+            console.log(image_batch)
+            // image_batch.print()
+            let generated_images = g.predict(noise,{verbose:0})
+            let X = tf.concat([image_batch, generated_images])
+            console.log(X.shape)
+            let y = tf.concat([tf.ones([BATCH_SIZE]), tf.zeros([BATCH_SIZE])])
+            console.log(y.shape)
+            let d_loss = await d.trainOnBatch(X, y)
+            console.log(d_loss)
+            noise = tf.randomUniform([BATCH_SIZE, 100], 0, 1)
+            d.trainable = false
+            let g_loss = await d_on_g.trainOnBatch(noise, tf.ones([BATCH_SIZE]))
+            d.trainable = true
+            console.log(g_loss)
+            return 
+        }
+    }
 }
 
-function compute_anomaly_score(model, x){
-    z = np.random.uniform(0, 1, size=(1, 100))
-    intermidiate_model = feature_extractor()
-    d_x = intermidiate_model.predict(x)
-    loss = model.fit(z, [x, d_x], epochs=500, verbose=0)
-    similar_data, _ = model.predict(z)
-    return loss.history['loss'][-1], similar_data
+async function run(){
+    const dataLength = 60000
+    let training_data = mnist.training(dataLength).images.values;
+    training_data = tf.tensor(training_data)
+    training_data = tf.div(training_data.sub(tf.scalar(127.5)), tf.scalar(127.5))
+    training_data = tf.expandDims(training_data, 3)
+    console.log(training_data)
+    let [Model_d, Model_g] = await train(32, training_data)
 }
-train()
+run()

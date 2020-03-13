@@ -24,3 +24,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.03.10 查阅了一些关于GAN实现异常检测的资料，着手利用anoGAN实现异常检测。
 * 2020.03.11 anoGAN.js 阅读了anoGAN的keras实现，完成anoGAN网络的搭建。
 * 2020.03.12 anoGAN.js compute_anomaly_score()异常得分函数。
+* 2020.03.13 anoGAN.js 完成训练函数，在minist数据集上训练，loss在2epoch之后趋于稳定。
