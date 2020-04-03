@@ -8,6 +8,7 @@ const { agnes } = require('ml-hclust');
 const clustering = require('density-clustering');
 const snapList = require('snap-to-grid-clustering').snapList
 const {Matrix, EigenvalueDecomposition, covariance} = require('ml-matrix');
+const SVM = require('ml-svm');
 
 //读到文件夹下所有文件的路径
 function findFile(dataPath){
@@ -38,7 +39,7 @@ async function loadFiles(dataPath, FacenetModel, Pnet, Rnet, Onet){
         let subvector = []
         for(val of dirArr[i]){
             console.log("loading file: "+val)
-            let vector = await facenet.faceVector(FacenetModel, val, Pnet, Rnet, Onet)
+            let vector = await facenet.faceAlignVector(FacenetModel, val, Pnet, Rnet, Onet)
             vector = vector.arraySync()[0]
             // vector.push(i)
             // vector = vector.map((val,index)=>{
@@ -255,7 +256,7 @@ async function createTree(){
             predictions.push(ans.clusters[i])
         }
     }
-
+    
     const options = {
         seed: 3,
         maxFeatures: 0.8,
@@ -283,7 +284,6 @@ async function createTree(){
     let accuracy = result.reduce((sum, val, index) =>{ let b = val===beforePredictResult[index] ? 1 : 0; return sum + b}, 0) / result.length
     console.log("classifer accuracy: ", "Class1: ", ans.centroids[0].size, "Class2: ", ans.centroids[1].size, accuracy)
 
-    vvvvv
     // let vectorsAll = []
     // for(subVectors of trainVectors){
     //     let sum = tf.scalar(0)
@@ -432,3 +432,4 @@ async function createTree(){
 }
 
 createTree()
+exports.loadFiles = loadFiles

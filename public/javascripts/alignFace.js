@@ -97,19 +97,6 @@ function getAffineFactor(points1, points2){
     return [angle, scale, distance]
 }
 
-// const fileToTensor = function (filename) {
-// 	return new Promise((resolve, reject) => {
-// 		const inputPng = new PNG();
-// 		fs.createReadStream(filename)
-// 			.pipe(inputPng)
-// 			.on('parsed', () => {
-//                 const images = tf.tensor4d(inputPng.data, [1, inputPng.height, inputPng.width, 4]);
-// 				resolve({images});
-// 			})
-// 			.on('error', reject);
-// 	});
-// };
-
 //将仿射结果输出成png图像文件
 //input parameters: 
 //  Number Array[n][15] rectangles mtcnn得到的人脸矩形区域和地标点数组
@@ -170,7 +157,7 @@ async function affineImage(images, rectangles){
         const [angle, scale, distance] = getAffineFactor(
             [[rectangle[5], rectangle[6]],[rectangle[7], rectangle[8]],[rectangle[9], rectangle[10]],[rectangle[11], rectangle[12]],[rectangle[13], rectangle[14]]],
             [[centerx-offsetEyeX, centery-offsetEyeY],[centerx+offsetEyeX, centery-offsetEyeY],[centerx, centery],[centerx-offsetMouX, centery+offsetMouY],[centerx+offsetMouX, centery+offsetMouY]])
-        console.log("angle: ", angle, "scale: ", scale, "distance: ", distance)
+        //console.log("angle: ", angle, "scale: ", scale, "distance: ", distance)
         if(Math.abs(angle) > config.faceAlignParam.smallestAngle){
             const basicAugmentation = ia.sequential([
                 ia.affine({translatePercent: [0,0],rotate: -angle, scale:1}),
@@ -184,11 +171,11 @@ async function affineImage(images, rectangles){
             t1 = t1.reshape([t1.shape[1], t1.shape[2], 3])
             return t1
         }else{
-            console.log('仿射角度小于' + config.faceAlignParam.smallestAngle + '，使用仿射对结果并无太大改善！')
+            //console.log('仿射角度小于' + config.faceAlignParam.smallestAngle + '，使用仿射对结果并无太大改善！')
             return "error"
         }
     }else{
-        console.log('人脸区域靠近图像边缘以至于无法转换成正方形！')
+        //console.log('人脸区域靠近图像边缘以至于无法转换成正方形！')
         return "error"
     }
 }

@@ -5,7 +5,7 @@ const detectFace = require("./detectFace")
 const alignFace = require("./alignFace")
 const config = require("../configParameter/config.json") //导入配置参数文件
 const image1Path = "./public/images/TaylorSwift/TaylorSwift0001.jpg"
-const image2Path = "./public/images/TaylorSwift/TaylorSwift0002.jpg"
+const image2Path = "E:/tensorflow/age-gender-estimation-master/age_estimation/appa-real-release/train/000001.jpg"
 //E:/tensorflow/Keras_TP-GAN-master/images/x2.png
 
 //导入facenet网络模型

@@ -1,8 +1,8 @@
-var fs = require('fs');
+// var fs = require('fs');
 const tf = require("@tensorflow/tfjs-node");
-const { agnes } = require('ml-hclust');
-const {Matrix, EigenvalueDecomposition, covariance} = require('ml-matrix');
-const config = require("../configParameter/config.json")
+// const { agnes } = require('ml-hclust');
+// const {Matrix, EigenvalueDecomposition, covariance} = require('ml-matrix');
+// const config = require("../configParameter/config.json")
 
 // console.log(config.p)
 // let cls_prob = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[18,19]]
@@ -34,17 +34,19 @@ const config = require("../configParameter/config.json")
 //         console.log(cls_prob1)
 //     })
 // })
-[ 1, 1168, 1280, 3 ]
-let arr = [255]
-let x1 = []
-for(let j=0; j<1280; j++){
-    x1.push([225])  
-}
-let x = []
-for(let j=0; j<1168; j++){
-    x.push([...x1])  
-}
-console.log(x.length, x[0].length, x[0][0].length)
+
+// [ 1, 1168, 1280, 3 ]
+// let arr = [255]
+// let x1 = []
+// for(let j=0; j<1280; j++){
+//     x1.push([225])  
+// }
+// let x = []
+// for(let j=0; j<1168; j++){
+//     x.push([...x1])  
+// }
+// console.log(x.length, x[0].length, x[0][0].length)
+
 // console.log([...''.padEnd(100)].map((v,i)=>v))
 
 // const input1 = tf.input({shape: [2, 2]});
@@ -225,3 +227,107 @@ console.log(x.length, x[0].length, x[0][0].length)
 
 //         return Area(A, B, C, D);
 //     }
+
+// var ProgressBar = require('progress');
+// var https = require('https');
+ 
+// var req = https.request({
+//   host: 'download.github.com',
+//   port: 443,
+//   path: '/visionmedia-node-jscoverage-0d4608a.zip'
+// });
+ 
+// req.on('response', function(res){
+//   var len = parseInt(res.headers['content-length'], 10);
+ 
+//   console.log();
+//   var bar = new ProgressBar('  downloading [:bar] :rate/bps :percent :etas', {
+//     complete: '=',
+//     incomplete: ' ',
+//     width: 20,
+//     total: len
+//   });
+ 
+//   res.on('data', function (chunk) {
+//     bar.tick(chunk.length);
+//   });
+ 
+//   res.on('end', function () {
+//     console.log('\n');
+//   });
+// });
+ 
+// req.end();
+
+// var ProgressBar = require('./progress-bar');
+ 
+// // 初始化一个进度条长度为 50 的 ProgressBar 实例
+// var pb = new ProgressBar('下载进度', 50);
+ 
+// // 这里只是一个 pb 的使用示例，不包含任何功能
+// var num = 0, total = 200;
+// function downloading() {
+//  if (num <= total) {
+//   // 更新进度条
+//   pb.render({ completed: num, total: total });
+ 
+//   num++;
+//   setTimeout(function (){
+//    downloading();
+//   }, 500)
+//  }
+// }
+// downloading();
+
+// var ProgressBar = require('progress');
+// var bar = new ProgressBar('  downloading :bar :rate/bps :percent :etas', {
+//   complete: '█',
+//   incomplete: '░',
+//   width: 20,
+//   total: 10
+// });
+// var timer = setInterval(function () {
+//   bar.tick();
+//   if (bar.complete) {
+//     console.log('\ncomplete');
+//     clearInterval(timer);
+//   }
+// }, 500);
+
+var fs = require("fs");
+
+// fs.readFile('./public/appacsv/gt_avg_train.csv', function (err, data) {
+//     var table = new Array();
+//     if (err) {
+//         console.log(err.stack);
+//         return;
+//     }
+
+//     ConvertToTable(data, function (table) {
+//         console.log(table);
+//     })
+// });
+
+// let data = fs.readFileSync('./public/appacsv/gt_avg_train.csv')
+// data = ConvertToTable(data)
+// console.log(data);
+// console.log("程序执行完毕");
+
+// function ConvertToTable(data) {
+//     data = data.toString();
+//     var table = new Array();
+//     var rows = new Array();
+//     // console.log(data)
+//     rows = data.split("\n");
+//     for (var i = 0; i < rows.length; i++) {
+//         table.push(rows[i].split(","));
+//     }
+//     return table
+// }
+
+// const a = tf.tensor([[1, 2]]);
+// const b = tf.tensor([[3, 4]]);
+// const c = tf.tensor([[5, 6]]);
+// tf.concat([a, b, c]).print();
+let y = new Array(10).fill(new Array(101).fill(0))
+console.log(y)

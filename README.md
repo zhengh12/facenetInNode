@@ -25,3 +25,4 @@ Most of code in ./public/javascripts\<br>
 * 2020.03.11 anoGAN.js 阅读了anoGAN的keras实现，完成anoGAN网络的搭建。
 * 2020.03.12 anoGAN.js compute_anomaly_score()异常得分函数。
 * 2020.03.13 anoGAN.js 完成训练函数，在minist数据集上训练，loss在2epoch之后趋于稳定。
+* 2020.04.03 agePredict.js 利用python的预训练模型完成对图片年龄，性别的估测。

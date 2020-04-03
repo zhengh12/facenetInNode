@@ -105,7 +105,7 @@ async function loadOriginalFacenetModel(modelPath){
 
     //加载模型
     const model = await tf.loadLayersModel('file://'+modelPath);
-    console.log(model.summary())
+    // console.log(model.summary())
     // console.log(tf.zeros([1,160,160,3]).dtype)
     // let result = model.predict([tf.zeros([1,160,160,3], "float32"), tf.zeros([1,160,160,3], "float32"), tf.zeros([1,160,160,3], "float32")])
     // console.log(result.print())
@@ -167,4 +167,6 @@ async function train(){
     })
 }
 
-train()
+
+// train()
+exports.loadOriginalFacenetModel = loadOriginalFacenetModel
